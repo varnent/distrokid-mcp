@@ -67,11 +67,15 @@ export async function loadReport(root, filename, { currency } = {}) {
   const info = await stat(file);
   if (!info.isFile() || info.size > MAX_BYTES) throw new Error('CSV must be a regular file <= 5 MiB');
   const csv = await readFile(file, 'utf8');
-  const records = parse(csv, { columns: true, bom: true, skip_empty_lines: true, relax_quotes: false, max_record_size: 100000, to: MAX_ROWS + 2 });
+  let headers = [];
+  let schema;
+  const records = parse(csv, { columns: rawHeaders => {
+    headers = rawHeaders;
+    schema = detectSchema(headers);
+    return headers;
+  }, bom: true, skip_empty_lines: true, relax_quotes: false, max_record_size: 100000, to: MAX_ROWS + 2 });
   if (records.length > MAX_ROWS) throw new Error('Too many CSV rows');
   if (!records.length) return { rows: [], metadata: { rows: 0, columns: [], currency: currency ? currencyCode(currency) : null } };
-  const headers = Object.keys(records[0]);
-  const schema = detectSchema(headers);
   const col = schema.columns;
   const fallback = currency ? currencyCode(currency) : null;
   const rows = records.map(record => {

@@ -67,3 +67,25 @@ test('rejects invalid currency codes', async () => {
     await assert.rejects(loadReport(dir,'report.csv'), /Invalid ISO-style currency/);
   });
 });
+
+test('rejects duplicate and ambiguous headers before records overwrite values', async () => {
+  for (const headers of ['Earnings,Earnings,Currency', 'Earnings,earnings,Currency', 'Earnings,Amount,Currency']) {
+    await withCsv(headers + '\n1,99,USD\n', async dir => {
+      await assert.rejects(loadReport(dir, 'report.csv'), /Duplicate|Ambiguous/);
+    });
+  }
+  await withCsv('Earnings,Earnings,Currency\n', async dir => {
+    await assert.rejects(loadReport(dir, 'report.csv'), /Duplicate/);
+  });
+});
+test('enforces file and row limits', async () => {
+  await withCsv('Earnings,Currency\n' + '1,USD\n'.repeat(50000), async dir => {
+    assert.equal((await loadReport(dir, 'report.csv')).rows.length, 50000);
+  });
+  await withCsv('Earnings,Currency\n' + '1,USD\n'.repeat(50001), async dir => {
+    await assert.rejects(loadReport(dir, 'report.csv'), /Too many CSV rows/);
+  });
+  await withCsv(' '.repeat(5 * 1024 * 1024 + 1), async dir => {
+    await assert.rejects(loadReport(dir, 'report.csv'), /regular file <= 5 MiB/);
+  });
+});

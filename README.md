@@ -7,7 +7,7 @@ A **read-only, local stdio MCP server** for authorized royalty CSV exports. Not 
 Requires Node.js 20+.
 
 ```sh
-npm install
+npm ci --ignore-scripts
 npm run check
 npm test
 mkdir -p data
@@ -23,7 +23,7 @@ Connect using an MCP client that supports local stdio servers. The server expose
 - Currency is **required** for nonempty reports. Provide a `Currency`, `Currency Code`, or `Payment Currency` CSV column, or pass the optional `currency` parameter to `report_summary`. Mixed currencies and conflicting codes are rejected. Codes must be three letters; the implementation does not verify an authoritative ISO 4217 list or perform exchange conversion.
 - Detects supported header aliases and rejects duplicate or ambiguous columns. Schema detection currently recognizes a **generic royalty CSV**; it does not claim to identify specific DistroKid export versions.
 - Retains basename-only paths, symlink escape protection, 5 MiB file limit, 50,000 row limit, and no raw row responses.
-- CI checks Node 20 and 22, JavaScript syntax, tests, and high-severity dependency advisories. Dependency installation currently uses `npm install --ignore-scripts` until a lockfile is committed; add `package-lock.json` and switch to `npm ci` for reproducibility.
+- CI checks Node 20 and 22, JavaScript syntax, tests, and high-severity dependency advisories. Dependency installation uses the committed `package-lock.json` with `npm ci --ignore-scripts` for reproducibility.
 
 ## CSV headers
 
@@ -39,7 +39,7 @@ No credentials, OAuth, network listener, hosted MCP endpoint, deployment, or acc
 
 - Validate against redacted real export headers, add fixtures for versioned schemas.
 - Add precise date filtering, currency code allowlist, and financial reconciliation tests.
-- Add a dependency lockfile and pin GitHub Actions to reviewed commit SHAs.
+- Pin GitHub Actions to reviewed commit SHAs.
 - Design a separate HTTPS MCP service with user authorization and tenant isolation, **without deploying it**.
 
 MIT licensed. See LICENSE.
