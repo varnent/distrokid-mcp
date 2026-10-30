@@ -15,11 +15,12 @@ const ALIASES = {
 };
 const norm = value => String(value).trim().toLowerCase().replace(/\s+/g, ' ');
 const MAX_DIGITS = 24;
-function decimal(value) {
+function decimal(value, { allowEmpty = false } = {}) {
   const raw = String(value ?? '').trim();
-  if (!raw) return { units: 0n, scale: 0 };
-  const cleaned = raw.replace(/[$,\s]/g, '');
-  if (!/^[+-]?\d+(?:\.\d+)?$/.test(cleaned)) throw new Error('Invalid numeric field in CSV');
+  if (!raw && allowEmpty) return { units: 0n, scale: 0 };
+  // Validate formatting before removing currency and grouping characters.
+  if (!/^[+-]?\$?(?:\d+|\d{1,3}(?:,\d{3})+)(?:\.\d+)?$/.test(raw)) throw new Error('Invalid numeric field in CSV');
+  const cleaned = raw.replace(/[$,]/g, '');
   const sign = cleaned.startsWith('-') ? -1n : 1n;
   const unsigned = cleaned.replace(/^[+-]/, '');
   const [whole, fraction = ''] = unsigned.split('.');
@@ -89,7 +90,7 @@ export async function loadReport(root, filename, { currency } = {}) {
       date: String(record[col.date] ?? '').trim(),
       currency: code,
       earnings: decimal(record[col.earnings]),
-      quantity: col.quantity ? decimal(record[col.quantity]) : ZERO
+      quantity: col.quantity ? decimal(record[col.quantity], { allowEmpty: true }) : ZERO
     };
   });
   const currencies = [...new Set(rows.map(r => r.currency))];

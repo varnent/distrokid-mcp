@@ -89,3 +89,16 @@ test('enforces file and row limits', async () => {
     await assert.rejects(loadReport(dir, 'report.csv'), /regular file <= 5 MiB/);
   });
 });
+
+test('rejects blank earnings and malformed numeric formatting without changing values', async () => {
+  for (const value of ['', '1,2', '1 2', '1$2', '1,,000', '$', '1e3']) {
+    await withCsv(`Earnings,Currency\n"${value}",USD\n`, async dir => {
+      await assert.rejects(loadReport(dir, 'report.csv'), /Invalid numeric/);
+    });
+  }
+  await withCsv('Earnings,Currency,Quantity\n"-$1,234.500",USD,\n"+1,000.25",USD,2\n', async dir => {
+    const { rows } = await loadReport(dir, 'report.csv');
+    assert.equal(summarize(rows).totalEarnings, '-234.25');
+    assert.equal(summarize(rows).totalQuantity, '2');
+  });
+});

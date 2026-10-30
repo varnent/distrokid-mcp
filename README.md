@@ -29,7 +29,7 @@ Connect using an MCP client that supports local stdio servers. The server expose
 
 Artist: `Artist`, `Artist Name`. Title: `Title`, `Track`, `Track Title`, `Song`, `Song Title`. Store: `Store`, `Service`, `Platform`, `Streaming Service`. Earnings (required): `Earnings`, `Amount`, `Net Earnings`, `Royalty`, `Royalties`, `Total Earned`. Quantity: `Quantity`, `Streams`, `Plays`, `Units`. Date: `Date`, `Sale Date`, `Report Date`, `Month`. Currency: `Currency`, `Currency Code`, `Payment Currency`.
 
-No normalization of dates or unit types is attempted. Earnings values may include dollar signs and thousands separators; explicit currency remains mandatory because a dollar sign alone is ambiguous. Review the source export's units and accounting definitions.
+No normalization of dates or unit types is attempted. Earnings must be nonblank decimal values. An optional leading sign, then an optional dollar sign, and correctly grouped thousands separators are supported (for example, `-$1,234.50`). Internal whitespace, misplaced symbols, and malformed grouping are rejected. Blank optional quantities are treated as zero; explicit currency remains mandatory because a dollar sign alone is ambiguous. Review the source export's units and accounting definitions.
 
 ## Security and limitations
 
