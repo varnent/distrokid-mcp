@@ -1,0 +1,10 @@
+{
+  "name": "distrokid-csv-mcp",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Unofficial read-only MCP server for locally supplied DistroKid CSV exports",
+  "type": "module",
+  "engines": {"node": ">=20"},
+  "scripts": {"start": "node src/server.js", "test": "node --test", "check": "node --check src/server.js && node --check src/report.js"},
+  "dependencies": {"@modelcontextprotocol/sdk": "^1.12.0", "csv-parse": "^5.6.0", "zod": "^3.24.0"}
+}
