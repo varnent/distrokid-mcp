@@ -4,66 +4,121 @@ import { parse } from 'csv-parse/sync';
 
 const MAX_BYTES = 5 * 1024 * 1024;
 const MAX_ROWS = 50000;
-const HEADER_ALIASES = {
+const ALIASES = {
   artist: ['artist', 'artist name'],
   title: ['title', 'track', 'track title', 'song', 'song title'],
   store: ['store', 'service', 'platform', 'streaming service'],
   earnings: ['earnings', 'amount', 'net earnings', 'royalty', 'royalties', 'total earned'],
   quantity: ['quantity', 'streams', 'plays', 'units'],
-  date: ['date', 'sale date', 'report date', 'month']
+  date: ['date', 'sale date', 'report date', 'month'],
+  currency: ['currency', 'currency code', 'payment currency']
 };
-function normalize(s) { return String(s).trim().toLowerCase().replace(/\s+/g, ' '); }
-function column(headers, key) { return headers.find(h => HEADER_ALIASES[key].includes(normalize(h))); }
+const norm = value => String(value).trim().toLowerCase().replace(/\s+/g, ' ');
+const MAX_DIGITS = 24;
 function decimal(value) {
-  const v = String(value ?? '').trim();
-  if (!v) return 0;
-  const cleaned = v.replace(/[$,\s]/g, '');
-  if (!/^-?\d+(?:\.\d+)?$/.test(cleaned)) throw new Error('Invalid numeric field in CSV');
-  const n = Number(cleaned);
-  if (!Number.isFinite(n)) throw new Error('Non-finite numeric field');
-  return n;
+  const raw = String(value ?? '').trim();
+  if (!raw) return { units: 0n, scale: 0 };
+  const cleaned = raw.replace(/[$,\s]/g, '');
+  if (!/^[+-]?\d+(?:\.\d+)?$/.test(cleaned)) throw new Error('Invalid numeric field in CSV');
+  const sign = cleaned.startsWith('-') ? -1n : 1n;
+  const unsigned = cleaned.replace(/^[+-]/, '');
+  const [whole, fraction = ''] = unsigned.split('.');
+  if ((whole + fraction).length > MAX_DIGITS || fraction.length > 12) throw new Error('Numeric precision exceeds supported limit');
+  return { units: sign * BigInt(whole + fraction), scale: fraction.length };
 }
-export async function loadReport(root, filename) {
-  if (!/^[A-Za-z0-9][A-Za-z0-9_. -]*\.csv$/i.test(filename) || filename === '..') throw new Error('Invalid CSV filename');
+function add(a, b) {
+  const scale = Math.max(a.scale, b.scale);
+  return { units: a.units * 10n ** BigInt(scale - a.scale) + b.units * 10n ** BigInt(scale - b.scale), scale };
+}
+const ZERO = { units: 0n, scale: 0 };
+function format({ units, scale }) {
+  const negative = units < 0n;
+  const digits = (negative ? -units : units).toString().padStart(scale + 1, '0');
+  const whole = scale ? digits.slice(0, -scale) : digits;
+  const fractional = scale ? digits.slice(-scale).replace(/0+$/, '') : '';
+  return (negative && units !== 0n ? '-' : '') + whole + (fractional ? '.' + fractional : '');
+}
+function columnsFor(headers) {
+  const normalized = headers.map(norm);
+  if (new Set(normalized).size !== normalized.length) throw new Error('Duplicate CSV headers');
+  const result = {};
+  for (const [key, aliases] of Object.entries(ALIASES)) {
+    const found = headers.filter(h => aliases.includes(norm(h)));
+    if (found.length > 1) throw new Error('Ambiguous CSV columns for ' + key);
+    result[key] = found[0];
+  }
+  if (!result.earnings) throw new Error('Missing earnings column; see README');
+  return result;
+}
+export function detectSchema(headers) {
+  const columns = columnsFor(headers);
+  return { format: 'generic-royalty-csv', columns, recognized: Object.values(columns).filter(Boolean).length };
+}
+function currencyCode(value) {
+  const code = String(value ?? '').trim().toUpperCase();
+  if (!/^[A-Z]{3}$/.test(code)) throw new Error('Invalid ISO-style currency code');
+  return code;
+}
+export async function loadReport(root, filename, { currency } = {}) {
+  if (!/^[A-Za-z0-9][A-Za-z0-9_. -]*\.csv$/i.test(filename) || filename.length > 255) throw new Error('Invalid CSV filename');
   const base = await realpath(root);
   const file = await realpath(path.join(base, filename));
   if (path.dirname(file) !== base) throw new Error('File must be directly inside data directory');
-  const metadata = await stat(file);
-  if (!metadata.isFile() || metadata.size > MAX_BYTES) throw new Error('CSV must be a regular file <= 5 MiB');
+  const info = await stat(file);
+  if (!info.isFile() || info.size > MAX_BYTES) throw new Error('CSV must be a regular file <= 5 MiB');
   const csv = await readFile(file, 'utf8');
   const records = parse(csv, { columns: true, bom: true, skip_empty_lines: true, relax_quotes: false, max_record_size: 100000, to: MAX_ROWS + 2 });
   if (records.length > MAX_ROWS) throw new Error('Too many CSV rows');
-  if (!records.length) return { rows: [], metadata: { rows: 0, columns: [] } };
+  if (!records.length) return { rows: [], metadata: { rows: 0, columns: [], currency: currency ? currencyCode(currency) : null } };
   const headers = Object.keys(records[0]);
-  const earningCol = column(headers, 'earnings');
-  if (!earningCol) throw new Error('Missing earnings column; see README for supported headers');
-  const columns = Object.fromEntries(Object.keys(HEADER_ALIASES).map(k => [k, column(headers, k)]));
-  const rows = records.map(record => ({
-    artist: String(record[columns.artist] ?? '').trim(),
-    title: String(record[columns.title] ?? '').trim(),
-    store: String(record[columns.store] ?? '').trim(),
-    date: String(record[columns.date] ?? '').trim(),
-    earnings: decimal(record[columns.earnings]),
-    quantity: columns.quantity ? decimal(record[columns.quantity]) : 0
-  }));
-  return { rows, metadata: { rows: rows.length, columns: headers } };
+  const schema = detectSchema(headers);
+  const col = schema.columns;
+  const fallback = currency ? currencyCode(currency) : null;
+  const rows = records.map(record => {
+    const code = col.currency ? currencyCode(record[col.currency]) : fallback;
+    if (!code) throw new Error('Currency is required: supply a currency column or currency argument');
+    if (fallback && code !== fallback) throw new Error('Currency column conflicts with requested currency');
+    return {
+      artist: String(record[col.artist] ?? '').trim(),
+      title: String(record[col.title] ?? '').trim(),
+      store: String(record[col.store] ?? '').trim(),
+      date: String(record[col.date] ?? '').trim(),
+      currency: code,
+      earnings: decimal(record[col.earnings]),
+      quantity: col.quantity ? decimal(record[col.quantity]) : ZERO
+    };
+  });
+  const currencies = [...new Set(rows.map(r => r.currency))];
+  if (currencies.length !== 1) throw new Error('Mixed currencies cannot be aggregated');
+  return { rows, metadata: { rows: rows.length, columns: headers, schema, currency: currencies[0] } };
 }
 export function summarize(rows, { groupBy = 'artist', artist, limit = 20 } = {}) {
   if (!['artist', 'title', 'store', 'date'].includes(groupBy)) throw new Error('Unsupported grouping');
   if (!Number.isInteger(limit) || limit < 1 || limit > 100) throw new Error('Invalid limit');
   const filtered = artist ? rows.filter(r => r.artist.toLowerCase() === artist.toLowerCase()) : rows;
+  const currencies = [...new Set(filtered.map(r => r.currency))];
+  if (currencies.length > 1) throw new Error('Mixed currencies cannot be aggregated');
   const totals = new Map();
+  let totalEarnings = ZERO, totalQuantity = ZERO;
   for (const row of filtered) {
     const key = row[groupBy] || '(unknown)';
-    const entry = totals.get(key) ?? { name: key, earnings: 0, quantity: 0, rows: 0 };
-    entry.earnings += row.earnings;
-    entry.quantity += row.quantity;
+    const entry = totals.get(key) ?? { name: key, earnings: ZERO, quantity: ZERO, rows: 0 };
+    entry.earnings = add(entry.earnings, row.earnings);
+    entry.quantity = add(entry.quantity, row.quantity);
     entry.rows++;
     totals.set(key, entry);
+    totalEarnings = add(totalEarnings, row.earnings);
+    totalQuantity = add(totalQuantity, row.quantity);
   }
-  const groups = [...totals.values()].sort((a,b) => b.earnings-a.earnings || a.name.localeCompare(b.name)).slice(0, limit);
-  return { currency: 'unspecified (verify CSV export currency)', rowsMatched: filtered.length,
-    totalEarnings: Number(filtered.reduce((sum,r)=>sum+r.earnings,0).toFixed(6)),
-    totalQuantity: filtered.reduce((sum,r)=>sum+r.quantity,0),
-    groups: groups.map(g=>({...g, earnings:Number(g.earnings.toFixed(6))})) };
+  const groups = [...totals.values()].sort((a,b) => {
+    const scale = Math.max(a.earnings.scale, b.earnings.scale);
+    const left = a.earnings.units * 10n ** BigInt(scale - a.earnings.scale);
+    const right = b.earnings.units * 10n ** BigInt(scale - b.earnings.scale);
+    return left === right ? a.name.localeCompare(b.name) : left > right ? -1 : 1;
+  }).slice(0, limit);
+  return {
+    currency: currencies[0] ?? null, rowsMatched: filtered.length,
+    totalEarnings: format(totalEarnings), totalQuantity: format(totalQuantity),
+    groups: groups.map(g => ({ name:g.name, earnings:format(g.earnings), quantity:format(g.quantity), rows:g.rows }))
+  };
 }
