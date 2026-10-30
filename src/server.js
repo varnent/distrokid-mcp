@@ -9,7 +9,7 @@ const dataDir = process.env.DISTROKID_CSV_DIR;
 if (!dataDir) { console.error('Set DISTROKID_CSV_DIR to an existing local directory'); process.exit(1); }
 const root = await realpath(path.resolve(dataDir));
 if (!(await stat(root)).isDirectory()) throw new Error('Data path must be a directory');
-const server = new McpServer({ name: 'distrokid-csv-reports', version: '0.1.0' });
+const server = new McpServer({ name: 'distrokid-csv-reports', version: '0.2.0' });
 const result = data => ({ content: [{ type: 'text', text: JSON.stringify(data, null, 2) }] });
 const failure = error => ({ isError: true, content: [{ type: 'text', text: error instanceof Error ? error.message : 'Unknown error' }] });
 server.tool('list_reports', 'List CSV exports in the configured local directory (no account access)', {}, async () => {
@@ -22,13 +22,14 @@ server.tool('list_reports', 'List CSV exports in the configured local directory 
     return result({ reports });
   } catch (e) { return failure(e); }
 });
-server.tool('report_summary', 'Aggregate read-only earnings and quantities from a local CSV export. Currency must be verified independently.', {
+server.tool('report_summary', 'Aggregate read-only earnings and quantities from a local CSV export; requires explicit currency if absent from CSV.', {
   filename: z.string().min(5).max(255),
   groupBy: z.enum(['artist','title','store','date']).default('artist'),
   artist: z.string().max(250).optional(),
+  currency: z.string().regex(/^[A-Za-z]{3}$/).optional(),
   limit: z.number().int().min(1).max(100).default(20)
-}, async ({filename,groupBy,artist,limit}) => {
-  try { const {rows,metadata} = await loadReport(root, filename); return result({file:filename, metadata, summary:summarize(rows,{groupBy,artist,limit})}); }
+}, async ({filename,groupBy,artist,currency,limit}) => {
+  try { const {rows,metadata} = await loadReport(root, filename, {currency}); return result({file:filename, metadata, summary:summarize(rows,{groupBy,artist,limit})}); }
   catch(e) { return failure(e); }
 });
 await server.connect(new StdioServerTransport());
