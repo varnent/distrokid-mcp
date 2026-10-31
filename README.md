@@ -31,6 +31,22 @@ Artist: `Artist`, `Artist Name`. Title: `Title`, `Track`, `Track Title`, `Song`,
 
 No normalization of dates or unit types is attempted. Earnings must be nonblank decimal values. An optional leading sign, then an optional dollar sign, and correctly grouped thousands separators are supported (for example, `-$1,234.50`). Internal whitespace, misplaced symbols, and malformed grouping are rejected. Blank optional quantities are treated as zero; explicit currency remains mandatory because a dollar sign alone is ambiguous. Review the source export's units and accounting definitions.
 
+## Date-aware analytics (v0.3 development)
+
+The library exports `parseRoyaltyPeriod(value)` and
+`summarizePeriods(rows, { period, from, to, artist, dateBasis })` from
+`src/report.js`. Supported period values: `month`, `quarter`, `year`.
+Inclusive `from` and `to` bounds use the source CSV date field.
+Accepted dates are ISO `YYYY-MM`, ISO `YYYY-MM-DD`, and English month
+name plus year (for example `Jan 2025`). Ambiguous dates are rejected.
+
+The results use exact integer-backed decimals, chronological group order, and
+explicit `dateBasis: 'source'`. **Source date semantics are not inferred**:
+generic `Date` columns may mean sales, reporting, or payment dates depending
+on the export. This change does not yet expose a new MCP tool and does not
+modify the existing `report_summary` API. DistroKid-specific date mapping
+will be integrated after the separate CSV profile PR is reviewed.
+
 ## Security and limitations
 
 No credentials, OAuth, network listener, hosted MCP endpoint, deployment, or access to real artist data. Do not commit sensitive CSV files. The `data/` directory and `.env` are gitignored. Only process exports you are authorized to use. Files are loaded in memory after size checks; avoid sharing the data directory with untrusted local processes. Not yet financial-grade reconciliation, multi-user hosting, or an installable ChatGPT app.
