@@ -2,7 +2,8 @@ import { add, ZERO, format } from '../domain/decimal.js';
 
 // Only unambiguous ISO dates/months and English month-name/year formats are
 // accepted. A date is never silently treated as a reporting period.
-const MONTHS = Object.freeze({ jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12 });
+const MONTH_NAMES = ['january','february','march','april','may','june','july','august','september','october','november','december'];
+const MONTHS = Object.freeze(Object.fromEntries(MONTH_NAMES.flatMap((name, index) => [[name, index + 1], [name.slice(0, 3), index + 1]])));
 const pad = n => String(n).padStart(2, '0');
 export function parseRoyaltyPeriod(value) {
   const input = String(value ?? '').trim();
@@ -18,7 +19,7 @@ export function parseRoyaltyPeriod(value) {
   } else {
     match = /^([A-Za-z]{3,9})[ .-]+(\d{4})$/.exec(input);
     if (!match) throw new Error('Unsupported royalty date format');
-    month = MONTHS[match[1].slice(0, 3).toLowerCase()]; year = Number(match[2]);
+    month = MONTHS[match[1].toLowerCase()]; year = Number(match[2]);
   }
   if (!Number.isInteger(year) || year < 1000 || year > 9999 || !month || month < 1 || month > 12) throw new Error('Invalid royalty date');
   return { year, month, key: year + '-' + pad(month) };
