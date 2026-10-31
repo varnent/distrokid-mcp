@@ -70,3 +70,14 @@ test('DistroKid profile fingerprint requires distinctive headers', () => {
   assert.throws(() => detectSchema([...headers,'Earnings (USD)']), /Duplicate CSV headers/);
   assert.throws(() => detectSchema([...headers,'Earnings']), /Ambiguous CSV earnings/);
 });
+
+test('USD-labeled DistroKid earnings reject conflicting explicit currency columns', async () => {
+  const prefix = 'Sale Month,Store,Artist,Title,Quantity,Earnings (USD),Currency\n';
+  await withCsv(prefix + '2026-01,Spotify,A,Song,1,1.25,EUR\n', async dir => {
+    await assert.rejects(loadReport(dir, 'bank.csv'), /conflicts/);
+  });
+  await withCsv(prefix + '2026-01,Spotify,A,Song,1,1.25,USD\n', async dir => {
+    const { rows } = await loadReport(dir, 'bank.csv');
+    assert.equal(summarize(rows).currency, 'USD');
+  });
+});
