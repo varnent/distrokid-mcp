@@ -157,3 +157,25 @@ test('Bank quantity rejects fractional counts but preserves signed adjustments',
     assert.equal(summarize(rows).totalQuantity, '2');
   });
 });
+
+
+test('Bank quantity rejects malformed and fractional numeric inputs', async () => {
+  const prefix = 'Sale Month,Store,Artist,Title,Quantity,Earnings (USD)\n';
+  for (const quantity of ['1.25', '-0.5', 'NaN', 'Infinity', '1e3', '$1.2', '1.000000000001', '1234567890123456789012345']) {
+    const csv = prefix + '2026-01,Spotify,Example,Track,"' + quantity + '",0.10\n';
+    await withCsv(csv, async dir => {
+      await assert.rejects(loadReport(dir, 'bank.csv'), /Quantity must be an integer|Invalid numeric field|Numeric precision/);
+    });
+  }
+});
+
+test('Bank quantity permits signed integral, empty, and precision-boundary inputs', async () => {
+  const prefix = 'Sale Month,Store,Artist,Title,Quantity,Earnings (USD)\n';
+  for (const [quantity, expected] of [['', '0'], ['+2', '2'], ['-2.000', '-2'], ['0.000000000000', '0'], ['999999999999999999999999', '999999999999999999999999']]) {
+    const csv = prefix + '2026-01,Spotify,Example,Track,"' + quantity + '",0.10\n';
+    await withCsv(csv, async dir => {
+      const { rows } = await loadReport(dir, 'bank.csv');
+      assert.equal(summarize(rows).totalQuantity, expected);
+    });
+  }
+});
