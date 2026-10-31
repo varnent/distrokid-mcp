@@ -9,6 +9,7 @@ export function normalizeRecord(record, columns, { currency, filename = null, ro
   const implied = schema?.impliedCurrency ?? null;
   const code = columns.currency ? currencyCode(record[columns.currency]) : (implied ?? fallback);
   if (!code) throw new Error('Currency is required: supply a currency column or currency argument');
+  if (implied && code !== implied) throw new Error('Currency column conflicts with DistroKid earnings currency');
   if (fallback && code !== fallback) throw new Error('Currency column conflicts with requested currency');
   const artist = String(record[columns.artist] ?? '').trim();
   const title = String(record[columns.title] ?? '').trim();
