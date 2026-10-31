@@ -9,7 +9,7 @@ test('parses strict ISO dates and documented English month/year strings', () => 
   for (const input of ['2025-01', '2025-01-31', 'Jan 2025', 'January 2025']) {
     assert.equal(parseRoyaltyPeriod(input).key, '2025-01');
   }
-  for (const input of ['2025-02-30', '2025-13', '01/02/2025', '', '2025-00', 'Feb 0000']) {
+  for (const input of ['2025-02-30', '2025-13', '01/02/2025', '', '2025-00', 'Feb 0000', 'Januaryxx 2025', 'Febr 2025']) {
     assert.throws(() => parseRoyaltyPeriod(input), /Invalid|Unsupported/);
   }
   assert.equal(parseRoyaltyPeriod('2024-02-29').key, '2024-02');
