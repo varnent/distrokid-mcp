@@ -4,7 +4,7 @@ import { mkdtemp, writeFile, rm } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { detectSchema } from '../src/report.js';
-import { loadReport, summarize } from '../src/report.js';
+import { loadReport, summarize, summarizePeriods } from '../src/report.js';
 
 async function withCsv(csv, callback) {
   const dir = await mkdtemp(path.join(os.tmpdir(), 'dk-bank-'));
