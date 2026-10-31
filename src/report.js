@@ -1,4 +1,4 @@
-import { readFile, realpath, stat } from 'node:fs/promises';
+import { realpath, open, constants } from 'node:fs/promises';
 import path from 'node:path';
 import { parse } from 'csv-parse/sync';
 import { add, ZERO, format, compare } from './domain/decimal.js';
@@ -14,9 +14,25 @@ export async function loadReport(root, filename, { currency } = {}) {
   const base = await realpath(root);
   const file = await realpath(path.join(base, filename));
   if (path.dirname(file) !== base) throw new Error('File must be directly inside data directory');
-  const info = await stat(file);
-  if (!info.isFile() || info.size > MAX_BYTES) throw new Error('CSV must be a regular file <= 5 MiB');
-  const csv = await readFile(file, 'utf8');
+  // Open with O_NOFOLLOW, then validate and read the same file descriptor.
+  // This reduces symlink-swap and check/read race exposure.
+  const handle = await open(file, constants.O_RDONLY | constants.O_NOFOLLOW);
+  let csv;
+  try {
+    const info = await handle.stat();
+    if (!info.isFile() || info.size > MAX_BYTES) throw new Error('CSV must be a regular file <= 5 MiB');
+    const buffer = Buffer.alloc(MAX_BYTES + 1);
+    let length = 0;
+    while (length < buffer.length) {
+      const { bytesRead } = await handle.read(buffer, length, buffer.length - length, null);
+      if (bytesRead === 0) break;
+      length += bytesRead;
+    }
+    if (length > MAX_BYTES) throw new Error('CSV must be a regular file <= 5 MiB');
+    csv = buffer.toString('utf8', 0, length);
+  } finally {
+    await handle.close();
+  }
   let headers = [];
   let schema;
   const records = parse(csv, { columns: rawHeaders => {

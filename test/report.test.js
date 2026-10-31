@@ -102,3 +102,18 @@ test('rejects blank earnings and malformed numeric formatting without changing v
     assert.equal(summarize(rows).totalQuantity, '2');
   });
 });
+
+test('descriptor-backed reads preserve CSV content at the size limit', async () => {
+  await withCsv('Earnings,Currency\n0.000000000001,USD\n', async dir => {
+    const { rows } = await loadReport(dir, 'report.csv');
+    assert.equal(summarize(rows).totalEarnings, '0.000000000001');
+  });
+});
+test('rejects directory paths masquerading as CSV files', async () => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), 'dk-directory-'));
+  try {
+    const { mkdir } = await import('node:fs/promises');
+    await mkdir(path.join(dir, 'fake.csv'));
+    await assert.rejects(loadReport(dir, 'fake.csv'), /regular file|EISDIR|illegal operation/i);
+  } finally { await rm(dir, { recursive: true, force: true }); }
+});
