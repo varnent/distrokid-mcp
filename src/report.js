@@ -1,7 +1,7 @@
 import { readFile, realpath, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { parse } from 'csv-parse/sync';
-import { decimal, add, ZERO, format, compare } from './domain/decimal.js';
+import { add, ZERO, format, compare } from './domain/decimal.js';
 import { detectSchema } from './csv/detect.js';
 import { normalizeRecord, currencyCode } from './csv/normalize.js';
 
