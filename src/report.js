@@ -27,7 +27,7 @@ export async function loadReport(root, filename, { currency } = {}) {
   if (!records.length) return { rows: [], metadata: { rows: 0, columns: [], currency: currency ? currencyCode(currency) : null } };
   const col = schema.columns;
   const fallback = currency ? currencyCode(currency) : null;
-  const rows = records.map((record, index) => normalizeRecord(record, col, { currency: fallback, filename, rowNumber: index + 2 }));
+  const rows = records.map((record, index) => normalizeRecord(record, col, { currency: fallback, filename, rowNumber: index + 2, schema }));
   const currencies = [...new Set(rows.map(r => r.currency))];
   if (currencies.length !== 1) throw new Error('Mixed currencies cannot be aggregated');
   return { rows, metadata: { rows: rows.length, columns: headers, schema, currency: currencies[0] } };
