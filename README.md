@@ -31,6 +31,34 @@ Artist: `Artist`, `Artist Name`. Title: `Title`, `Track`, `Track Title`, `Song`,
 
 No normalization of dates or unit types is attempted. Earnings must be nonblank decimal values. An optional leading sign, then an optional dollar sign, and correctly grouped thousands separators are supported (for example, `-$1,234.50`). Internal whitespace, misplaced symbols, and malformed grouping are rejected. Blank optional quantities are treated as zero; explicit currency remains mandatory because a dollar sign alone is ambiguous. Review the source export's units and accounting definitions.
 
+## DistroKid Bank CSV compatibility (v0.3 development)
+
+A documented DistroKid Bank profile is detected only when the headers contain
+`Earnings (USD)`, `Sale Month`, `Store`, `Artist`, `Title`, and `Quantity`.
+For this profile, the currency is USD as specified by the earnings header; an
+explicit conflicting currency argument is rejected. Generic CSV exports still
+require a currency column or explicit currency argument.
+
+The profile recognizes current `Reporting Date` / `Source Type` and historical
+`Reporting Month` / `Song/Album` columns, and preserves ISRC, UPC,
+Country of Sale, Team Percentage, and raw reporting dates where present.
+`date` remains the raw sale-month string for legacy summaries; canonical
+`saleDate` and `reportPeriod` remain null until the date-aware PR validates
+date semantics. Team percentages are retained as source metadata and are **not**
+automatically applied to earnings. No split, withholding, or recoupment
+calculation is implied.
+
+Only UTF-8 comma-separated `.csv` files are supported. Historical tab-delimited
+TSV and Latin-1 encoded downloads are **not** supported in this change.
+No actual private DistroKid export was accessed: fixtures are synthetic and
+based on publicly documented header names. Validate against a redacted export
+before relying on this for accounting.
+
+References:
+- https://perpendis.com/royalty/distrokid-statement-to-excel
+- https://osc.garden/blog/data-analysis-music-streaming/
+- https://song-royalty-calculator.com/blog/distrokid-csv-breakdown
+
 ## Security and limitations
 
 No credentials, OAuth, network listener, hosted MCP endpoint, deployment, or access to real artist data. Do not commit sensitive CSV files. The `data/` directory and `.env` are gitignored. Only process exports you are authorized to use. Files are loaded in memory after size checks; avoid sharing the data directory with untrusted local processes. Not yet financial-grade reconciliation, multi-user hosting, or an installable ChatGPT app.
