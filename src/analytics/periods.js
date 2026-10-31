@@ -1,4 +1,4 @@
-import { add, ZERO, format, compare } from '../domain/decimal.js';
+import { add, ZERO, format } from '../domain/decimal.js';
 
 // Only unambiguous ISO dates/months and English month-name/year formats are
 // accepted. A date is never silently treated as a reporting period.
@@ -26,7 +26,7 @@ export function parseRoyaltyPeriod(value) {
 
 export function summarizePeriods(rows, { period = 'month', from, to, artist, dateBasis = 'source' } = {}) {
   if (!['month', 'quarter', 'year'].includes(period)) throw new Error('Unsupported period');
-  if (dateBasis !== 'source') throw new Error('Unsupported date basis; source date only');
+  if (!['source', 'sale-month'].includes(dateBasis)) throw new Error('Unsupported date basis');
   const lower = from === undefined ? null : parseRoyaltyPeriod(from).key;
   const upper = to === undefined ? null : parseRoyaltyPeriod(to).key;
   if (lower && upper && lower > upper) throw new Error('Invalid date range');
@@ -34,6 +34,9 @@ export function summarizePeriods(rows, { period = 'month', from, to, artist, dat
   let currency = null, count = 0, earnings = ZERO, quantity = ZERO;
   for (const row of rows) {
     if (artist && row.artist.toLowerCase() !== artist.toLowerCase()) continue;
+    if (dateBasis === 'sale-month' && row.schemaProfile !== 'distrokid-bank-usd') {
+      throw new Error('Sale-month basis requires verified DistroKid Bank schema');
+    }
     const parsed = parseRoyaltyPeriod(row.date);
     if ((lower && parsed.key < lower) || (upper && parsed.key > upper)) continue;
     if (currency && currency !== row.currency) throw new Error('Mixed currencies cannot be aggregated');
