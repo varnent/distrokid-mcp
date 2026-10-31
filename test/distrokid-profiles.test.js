@@ -81,3 +81,18 @@ test('USD-labeled DistroKid earnings reject conflicting explicit currency column
     assert.equal(summarize(rows).currency, 'USD');
   });
 });
+
+test('historical Bank layout tolerates reordered headers, BOM, CRLF and empty optional metadata', async () => {
+  const csv = '\uFEFF' + 'Earnings (USD),Country of Sale,Song/Album,Quantity,Title,Artist,Store,Sale Month,Reporting Month\r\n' +
+    '"-0.000001",,Song,"1,200","A ""quoted"" title",Example,Spotify,Feb 2024,Apr 2024\r\n';
+  await withCsv(csv, async dir => {
+    const { rows, metadata } = await loadReport(dir, 'bank.csv');
+    assert.equal(metadata.schema.format, 'distrokid-bank-usd');
+    assert.equal(rows[0].title, 'A "quoted" title');
+    assert.equal(rows[0].territory, null);
+    assert.equal(rows[0].date, 'Feb 2024');
+    assert.equal(rows[0].reportingDate, 'Apr 2024');
+    assert.equal(summarize(rows).totalEarnings, '-0.000001');
+    assert.equal(summarize(rows).totalQuantity, '1200');
+  });
+});
