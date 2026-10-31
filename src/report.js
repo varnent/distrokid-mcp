@@ -4,6 +4,7 @@ import { parse } from 'csv-parse/sync';
 import { add, ZERO, format, compare } from './domain/decimal.js';
 import { detectSchema } from './csv/detect.js';
 export { detectSchema } from './csv/detect.js';
+export { parseRoyaltyPeriod, summarizePeriods } from './analytics/periods.js';
 import { normalizeRecord, currencyCode } from './csv/normalize.js';
 
 const MAX_BYTES = 5 * 1024 * 1024;
