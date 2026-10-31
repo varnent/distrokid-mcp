@@ -21,7 +21,7 @@ Connect using an MCP client that supports local stdio servers. The server expose
 
 - Earnings and quantities use integer-backed decimal calculations, with up to 12 fractional places and 24 total digits per input. **Output totals are decimal strings** to avoid precision loss in JSON. This is an intentional change from v0.1 numeric output.
 - Currency is **required** for nonempty reports. Provide a `Currency`, `Currency Code`, or `Payment Currency` CSV column, or pass the optional `currency` parameter to `report_summary`. Mixed currencies and conflicting codes are rejected. Codes must be three letters; the implementation does not verify an authoritative ISO 4217 list or perform exchange conversion.
-- Detects supported header aliases and rejects duplicate or ambiguous columns. Schema detection supports a generic royalty CSV and a fingerprinted DistroKid Bank USD export profile in the v0.3 development branches.
+- Detects supported header aliases and rejects duplicate or ambiguous columns. Schema detection supports a generic royalty CSV and a fingerprinted DistroKid Bank USD export profile in the current unreleased v0.3 development branch.
 - Retains basename-only paths, symlink escape protection, 5 MiB file limit, 50,000 row limit, and no raw row responses.
 - CI checks Node 20 and 22, JavaScript syntax, tests, and high-severity dependency advisories. Dependency installation uses the committed `package-lock.json` with `npm ci --ignore-scripts` for reproducibility.
 
@@ -29,7 +29,7 @@ Connect using an MCP client that supports local stdio servers. The server expose
 
 Artist: `Artist`, `Artist Name`. Title: `Title`, `Track`, `Track Title`, `Song`, `Song Title`. Store: `Store`, `Service`, `Platform`, `Streaming Service`. Earnings (required): `Earnings`, `Amount`, `Net Earnings`, `Royalty`, `Royalties`, `Total Earned`. Quantity: `Quantity`, `Streams`, `Plays`, `Units`. Date: `Date`, `Sale Date`, `Report Date`, `Month`. Currency: `Currency`, `Currency Code`, `Payment Currency`.
 
-No normalization of dates or unit types is attempted. Earnings must be nonblank decimal values. An optional leading sign, then an optional dollar sign, and correctly grouped thousands separators are supported (for example, `-$1,234.50`). Internal whitespace, misplaced symbols, and malformed grouping are rejected. Blank optional quantities are treated as zero; explicit currency remains mandatory because a dollar sign alone is ambiguous. Review the source export's units and accounting definitions.
+Generic CSV dates and quantity units are not normalized. DistroKid Bank Sale Month is parsed by the separate period-analytics API; the MCP tools do not expose period summaries. Earnings must be nonblank decimal values. An optional leading sign, then an optional dollar sign, and correctly grouped thousands separators are supported (for example, `-$1,234.50`). Internal whitespace, misplaced symbols, and malformed grouping are rejected. Blank optional quantities are treated as zero; explicit currency remains mandatory because a dollar sign alone is ambiguous. Review the source export's units and accounting definitions.
 
 ## DistroKid Bank CSV compatibility (v0.3 development)
 
@@ -46,8 +46,8 @@ and Recoup (USD), plus raw reporting dates where present. Adjustment fields are
 retained as strings rather than recomputed into earnings. If an optional
 currency column is present, it must agree with the USD-labeled earnings header.
 `date` remains the raw sale-month string for legacy summaries; canonical
-`saleDate` and `reportPeriod` remain null until the date-aware PR validates
-date semantics. Team percentages are retained as source metadata and are **not**
+`saleDate` and `reportPeriod` remain null; the date-aware JavaScript API
+parses `date` when `summarizePeriods` is called, but this API is not yet an MCP tool. Team percentages are retained as source metadata and are **not**
 automatically applied to earnings. No split, withholding, or recoupment
 calculation is implied.
 
@@ -83,25 +83,25 @@ No credentials, OAuth, network listener, hosted MCP endpoint, or deployment. The
 ## Roadmap
 
 - Validate against redacted real export headers, add fixtures for versioned schemas.
-- Add precise date filtering, currency code allowlist, and financial reconciliation tests.
-- Pin GitHub Actions to reviewed commit SHAs.
+- Expose verified date-period filters as an MCP tool; add a currency code allowlist and financial reconciliation tests.
+- Keep GitHub Actions commit pins reviewed and updated as upstream security fixes arrive.
 - Design a separate HTTPS MCP service with user authorization and tenant isolation, **without deploying it**.
 
 MIT licensed. See LICENSE.
 
 ### Combined CSV and analytics validation (integration branch)
 
-The integration branch combines draft PR #3's DistroKid Bank profile and
-draft PR #4's strict date-aware analytics without merging either PR.
+The development branch now integrates the DistroKid Bank profile, strict
+date-aware analytics, and subsequent quantity-validation regression tests.
 It adds end-to-end synthetic tests of the CSV loader and `sale-month`
 summaries, including a 446-row fabricated batch with exact 12-place
 decimal totals. **These values are synthetic and do not reproduce the
 uploaded private financial records.** Both `Reporting Date` and
 `Date Inserted` remain separate metadata, not grouping dates.
-The combined branch is for review and CI only; no release or deployment.
+The integrated development branch remains unreleased and undeployed.
 
 
-### Security hardening (unreleased branch)
+### Security hardening (unreleased development branch)
 
 CSV reads now use a single validated file descriptor, no-follow opening, and a
 bounded read to reduce check/read race and file-growth risks. The CI workflow

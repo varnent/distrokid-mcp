@@ -10,7 +10,7 @@
   "scripts": {
     "start": "node src/server.js",
     "test": "node --test",
-    "check": "node --check src/server.js && node --check src/report.js && node --check test/report.test.js"
+    "check": "node --check src/server.js && node --check src/report.js && node --check src/domain/decimal.js && node --check src/csv/detect.js && node --check src/csv/normalize.js && node --check src/csv/profiles/distrokid.js && node --check src/csv/profiles/generic.js && node --check src/analytics/periods.js && node --check test/report.test.js && node --check test/distrokid-profiles.test.js && node --check test/periods.test.js"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.0",
