@@ -141,3 +141,19 @@ test('large fabricated Bank batch preserves aggregate arithmetic and all rows', 
     assert.equal(periods.totalEarnings, '0.000000000446');
   });
 });
+
+
+test('Bank quantity rejects fractional counts but preserves signed adjustments', async () => {
+  const prefix = 'Sale Month,Store,Artist,Title,Quantity,Earnings (USD)\n';
+  await withCsv(prefix + '2026-01,Spotify,Example,Track,1.5,0.10\n', async dir => {
+    await assert.rejects(loadReport(dir, 'bank.csv'), /Quantity must be an integer/);
+  });
+  await withCsv(prefix + '2026-01,Spotify,Example,Track,-2,0.10\n', async dir => {
+    const { rows } = await loadReport(dir, 'bank.csv');
+    assert.equal(summarize(rows).totalQuantity, '-2');
+  });
+  await withCsv(prefix + '2026-01,Spotify,Example,Track,2.0,0.10\n', async dir => {
+    const { rows } = await loadReport(dir, 'bank.csv');
+    assert.equal(summarize(rows).totalQuantity, '2');
+  });
+});
