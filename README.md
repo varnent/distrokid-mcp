@@ -41,7 +41,10 @@ require a currency column or explicit currency argument.
 
 The profile recognizes current `Reporting Date` / `Source Type` and historical
 `Reporting Month` / `Song/Album` columns, and preserves ISRC, UPC,
-Country of Sale, Team Percentage, and raw reporting dates where present.
+Country of Sale, Team Percentage, Date Inserted, Songwriter Royalties Withheld (USD),
+and Recoup (USD), plus raw reporting dates where present. Adjustment fields are
+retained as strings rather than recomputed into earnings. If an optional
+currency column is present, it must agree with the USD-labeled earnings header.
 `date` remains the raw sale-month string for legacy summaries; canonical
 `saleDate` and `reportPeriod` remain null until the date-aware PR validates
 date semantics. Team percentages are retained as source metadata and are **not**
