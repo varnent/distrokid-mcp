@@ -12,7 +12,7 @@ export function detectSchema(headers) {
     if (found.length > 1) throw new Error('Ambiguous CSV columns for ' + key);
     columns[key] = found[0];
   }
-  for (const key of profile.required) if (!columns[key]) throw new Error('Missing required CSV column: ' + key);
+  for (const key of profile.required) if (!columns[key]) throw new Error(key === 'earnings' ? 'Missing earnings column; see README' : 'Missing required CSV column: ' + key);
   return { format: profile.id, columns, recognized: Object.values(columns).filter(Boolean).length,
     ...(profile.impliedCurrency ? { impliedCurrency: profile.impliedCurrency } : {}) };
 }
