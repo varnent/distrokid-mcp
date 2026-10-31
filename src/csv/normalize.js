@@ -15,10 +15,15 @@ export function normalizeRecord(record, columns, { currency, filename = null, ro
   const title = String(record[columns.title] ?? '').trim();
   const store = String(record[columns.store] ?? '').trim();
   const date = String(record[columns.date] ?? '').trim();
+  const quantity = columns.quantity ? decimal(record[columns.quantity], { allowEmpty: true }) : ZERO;
+  // Bank quantity is a signed count: negative adjustments are valid, fractional counts are not.
+  if (schema?.format === 'distrokid-bank-usd' && quantity.units % (10n ** BigInt(quantity.scale)) !== 0n) {
+    throw new Error('DistroKid Bank Quantity must be an integer');
+  }
   return {
     artist, title, store, date, currency: code,
     earnings: decimal(record[columns.earnings]),
-    quantity: columns.quantity ? decimal(record[columns.quantity], { allowEmpty: true }) : ZERO,
+    quantity,
     // Canonical fields are additive; legacy properties above remain unchanged.
     sourceFile: filename, sourceRow: rowNumber, schemaProfile: schema?.format ?? 'generic-royalty-csv',
     isrc: columns.isrc ? String(record[columns.isrc] ?? '').trim() || null : null,
