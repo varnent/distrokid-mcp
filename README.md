@@ -62,6 +62,19 @@ References:
 - https://osc.garden/blog/data-analysis-music-streaming/
 - https://song-royalty-calculator.com/blog/distrokid-csv-breakdown
 
+### Private-export structure validation
+
+A user-supplied DistroKid Bank export was inspected locally for schema
+compatibility: 446 data rows, 15 columns, consistent row lengths, and exact
+headers matching the Bank profile. All observed `Sale Month` fields used
+`YYYY-MM`; `Reporting Date` and `Date Inserted` used `YYYY-MM-DD`.
+The `Recoup (USD)` column was present but blank in every observed row.
+Numeric earnings and quantity fields matched the supported decimal grammar.
+Only a fabricated fixture reflecting these structural properties was committed;
+**the original export, identities, identifiers and financial values were not
+committed**. This is a structure/grammar check, not yet a full runtime
+reconciliation of the private file through the Node.js parser.
+
 ## Security and limitations
 
 No credentials, OAuth, network listener, hosted MCP endpoint, deployment, or access to real artist data. Do not commit sensitive CSV files. The `data/` directory and `.env` are gitignored. Only process exports you are authorized to use. Files are loaded in memory after size checks; avoid sharing the data directory with untrusted local processes. Not yet financial-grade reconciliation, multi-user hosting, or an installable ChatGPT app.
