@@ -28,12 +28,16 @@ test('recognizes documented DistroKid Bank header fingerprint and USD without cu
     assert.equal(rows[0].upc, '123456789012');
     assert.equal(rows[0].territory, 'US');
     assert.equal(rows[0].reportingDate, '2026-01-19');
+    assert.equal(rows[0].dateInserted, '2026-01-20');
+    assert.equal(rows[0].songwriterRoyaltiesWithheldUsd, '0');
+    assert.equal(rows[0].recoupUsd, null);
     assert.equal(rows[0].sourceType, 'Song');
     assert.equal(rows[0].teamPercentage, '100');
     assert.equal(rows[0].date, '2025-11');
     assert.equal(rows[0].saleDate, null);
     assert.equal(rows[0].dateBasis, 'unknown');
     assert.equal(rows[1].isrc, null);
+    assert.equal(rows[1].songwriterRoyaltiesWithheldUsd, '0');
     assert.equal(summarize(rows).totalEarnings, '0');
     assert.equal(summarize(rows).totalQuantity, '2');
     await assert.rejects(loadReport(dir, 'bank.csv', { currency: 'EUR' }), /conflicts/);
@@ -64,4 +68,5 @@ test('DistroKid profile fingerprint requires distinctive headers', () => {
   assert.equal(detectSchema(['Earnings','Artist','Store','Sale Month']).format, 'generic-royalty-csv');
   assert.throws(() => detectSchema([...headers,'earnings (usd)']), /Duplicate CSV headers/);
   assert.throws(() => detectSchema([...headers,'Earnings (USD)']), /Duplicate CSV headers/);
+  assert.throws(() => detectSchema([...headers,'Earnings']), /Ambiguous CSV earnings/);
 });
