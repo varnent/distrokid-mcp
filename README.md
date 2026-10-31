@@ -41,11 +41,16 @@ Accepted dates are ISO `YYYY-MM`, ISO `YYYY-MM-DD`, and English month
 name plus year (for example `Jan 2025`). Ambiguous dates are rejected.
 
 The results use exact integer-backed decimals, chronological group order, and
-explicit `dateBasis: 'source'`. **Source date semantics are not inferred**:
+explicit `dateBasis: 'source'` by default. A caller can request
+`dateBasis: 'sale-month'` only for rows with `schemaProfile` equal to
+`distrokid-bank-usd`; this groups the original sale-month field rather than
+`Reporting Date`. It does not infer sale-month semantics for generic CSVs. **Source date semantics are not inferred**:
 generic `Date` columns may mean sales, reporting, or payment dates depending
 on the export. This change does not yet expose a new MCP tool and does not
-modify the existing `report_summary` API. DistroKid-specific date mapping
-will be integrated after the separate CSV profile PR is reviewed.
+modify the existing `report_summary` API. The `sale-month` mode depends on the DistroKid schema profile being supplied
+by the separate CSV compatibility PR (#3). Until that PR is integrated,
+`loadReport` from the base branch produces generic profiles and will not
+satisfy this provenance check.
 
 ## Security and limitations
 
