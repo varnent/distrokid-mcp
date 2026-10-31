@@ -87,3 +87,15 @@ No credentials, OAuth, network listener, hosted MCP endpoint, deployment, or acc
 - Design a separate HTTPS MCP service with user authorization and tenant isolation, **without deploying it**.
 
 MIT licensed. See LICENSE.
+
+### Combined CSV and analytics validation (integration branch)
+
+The integration branch combines draft PR #3's DistroKid Bank profile and
+draft PR #4's strict date-aware analytics without merging either PR.
+It adds end-to-end synthetic tests of the CSV loader and `sale-month`
+summaries, including a 446-row fabricated batch with exact 12-place
+decimal totals. **These values are synthetic and do not reproduce the
+uploaded private financial records.** Both `Reporting Date` and
+`Date Inserted` remain separate metadata, not grouping dates.
+The combined branch is for review and CI only; no release or deployment.
+
