@@ -10,7 +10,7 @@ export function detectDistroKidProfile(headers) {
     aliases: {
       artist: ['artist'], title: ['title'], store: ['store'],
       earnings: ['earnings (usd)'], quantity: ['quantity'],
-      date: ['sale month'], currency: [],
+      date: ['sale month'], currency: ['currency', 'currency code', 'payment currency'],
       isrc: ['isrc'], upc: ['upc'], territory: ['country of sale'],
       saleMonth: ['sale month'], reportingDate: ['reporting date', 'reporting month'],
       dateInserted: ['date inserted'],
