@@ -30,7 +30,7 @@ test('rejects mixed currencies, ambiguous dates, invalid filters and basis', () 
   assert.throws(() => summarizePeriods([row('01/02/2025','1')]), /Unsupported/);
   assert.throws(() => summarizePeriods([], { from: '2025-12', to: '2025-01' }), /Invalid date range/);
   assert.throws(() => summarizePeriods([], { period: 'week' }), /Unsupported period/);
-  assert.throws(() => summarizePeriods([], { dateBasis: 'sale' }), /Unsupported date basis/);
+  assert.throws(() => summarizePeriods([], { dateBasis: 'payment' }), /Unsupported date basis/);
 });
 
 test('filters inclusive date ranges and artist without losing exact values', () => {
@@ -39,4 +39,16 @@ test('filters inclusive date ranges and artist without losing exact values', () 
   assert.equal(result.totalEarnings, '0.000000000003');
   assert.equal(result.rowsMatched, 2);
   assert.equal(result.totalQuantity, '2');
+});
+
+test('sale-month basis requires DistroKid Bank provenance and ignores reporting date', () => {
+  const rows = [
+    { ...row('2025-01','0.25'), schemaProfile: 'distrokid-bank-usd', reportingDate: '2025-03-15' },
+    { ...row('2025-02','0.75'), schemaProfile: 'distrokid-bank-usd', reportingDate: '2025-04-15' }
+  ];
+  const result = summarizePeriods(rows, { period: 'month', dateBasis: 'sale-month' });
+  assert.deepEqual(result.groups.map(g => g.period), ['2025-01','2025-02']);
+  assert.equal(result.totalEarnings, '1');
+  assert.equal(result.dateBasis, 'sale-month');
+  assert.throws(() => summarizePeriods([row('2025-01','1')], { dateBasis: 'sale-month' }), /requires verified DistroKid Bank schema/);
 });
