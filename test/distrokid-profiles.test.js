@@ -112,3 +112,16 @@ test('synthetic fixture mirrors verified 15-column Bank export structure and bla
     assert.equal(summarize(rows).totalEarnings, '0.00123456789');
   });
 });
+
+test('Bank rows group by sale month instead of reporting date', async () => {
+  const csv = headers.join(',') + '\n' +
+    '2026-06-02,2026-06-01,2026-04,Spotify,Example,Track A,ISRC1,UPC1,2,100,Song,US,0,0.000000000001,\n' +
+    '2026-07-02,2026-07-01,2026-05,Spotify,Example,Track B,ISRC2,UPC2,3,100,Song,US,0,0.000000000002,\n';
+  await withCsv(csv, async dir => {
+    const { rows } = await loadReport(dir, 'bank.csv');
+    const result = summarizePeriods(rows, { dateBasis: 'sale-month' });
+    assert.deepEqual(result.groups.map(g => g.period), ['2026-04','2026-05']);
+    assert.equal(result.totalEarnings, '0.000000000003');
+    assert.equal(result.totalQuantity, '5');
+  });
+});
