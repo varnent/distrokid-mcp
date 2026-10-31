@@ -125,3 +125,19 @@ test('Bank rows group by sale month instead of reporting date', async () => {
     assert.equal(result.totalQuantity, '5');
   });
 });
+
+test('large fabricated Bank batch preserves aggregate arithmetic and all rows', async () => {
+  const entries = Array.from({ length: 446 }, (_, i) =>
+    ['2026-06-02','2026-06-01',i % 2 ? '2026-04' : '2026-05',
+      'Example Store','Fictional Artist','Fictional Track','ISRC','UPC',
+      '1','100','Song','US','0','0.000000000001',''].join(','));
+  await withCsv(headers.join(',') + '\n' + entries.join('\n') + '\n', async dir => {
+    const { rows, metadata } = await loadReport(dir, 'bank.csv');
+    assert.equal(metadata.rows, 446);
+    assert.equal(summarize(rows).totalQuantity, '446');
+    assert.equal(summarize(rows).totalEarnings, '0.000000000446');
+    const periods = summarizePeriods(rows, { dateBasis: 'sale-month' });
+    assert.equal(periods.groups.length, 2);
+    assert.equal(periods.totalEarnings, '0.000000000446');
+  });
+});
