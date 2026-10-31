@@ -96,3 +96,19 @@ test('historical Bank layout tolerates reordered headers, BOM, CRLF and empty op
     assert.equal(summarize(rows).totalQuantity, '1200');
   });
 });
+
+test('synthetic fixture mirrors verified 15-column Bank export structure and blank Recoup', async () => {
+  const synthetic = headers.join(',') + '\n' +
+    '2026-06-02,2026-06-01,2026-04,Example Store,Fictional Artist,Fictional Track,USZZZ2600001,999999999999,12,100,Song,US,0.000000000000,0.001234567890,\n';
+  await withCsv(synthetic, async dir => {
+    const { rows, metadata } = await loadReport(dir, 'bank.csv');
+    assert.equal(metadata.columns.length, 15);
+    assert.equal(metadata.schema.format, 'distrokid-bank-usd');
+    assert.equal(rows[0].dateInserted, '2026-06-02');
+    assert.equal(rows[0].reportingDate, '2026-06-01');
+    assert.equal(rows[0].date, '2026-04');
+    assert.equal(rows[0].recoupUsd, null);
+    assert.equal(rows[0].songwriterRoyaltiesWithheldUsd, '0.000000000000');
+    assert.equal(summarize(rows).totalEarnings, '0.00123456789');
+  });
+});
