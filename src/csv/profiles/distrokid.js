@@ -13,6 +13,9 @@ export function detectDistroKidProfile(headers) {
       date: ['sale month'], currency: [],
       isrc: ['isrc'], upc: ['upc'], territory: ['country of sale'],
       saleMonth: ['sale month'], reportingDate: ['reporting date', 'reporting month'],
+      dateInserted: ['date inserted'],
+      songwriterRoyaltiesWithheldUsd: ['songwriter royalties withheld (usd)'],
+      recoupUsd: ['recoup (usd)'],
       sourceType: ['source type', 'song/album'],
       teamPercentage: ['team percentage']
     },
