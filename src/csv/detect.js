@@ -6,6 +6,9 @@ export function detectSchema(headers) {
   const normalized = headers.map(normalizeHeader);
   if (new Set(normalized).size !== normalized.length) throw new Error('Duplicate CSV headers');
   const profile = detectDistroKidProfile(headers) ?? genericProfile;
+  if (profile !== genericProfile && normalized.some(h => genericProfile.aliases.earnings.includes(h))) {
+    throw new Error('Ambiguous CSV earnings columns: DistroKid USD and generic earnings both present');
+  }
   const columns = {};
   for (const [key, aliases] of Object.entries(profile.aliases)) {
     const found = headers.filter(h => aliases.includes(normalizeHeader(h)));
