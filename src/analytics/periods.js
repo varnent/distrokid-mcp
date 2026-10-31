@@ -38,6 +38,9 @@ export function summarizePeriods(rows, { period = 'month', from, to, artist, dat
     if (dateBasis === 'sale-month' && row.schemaProfile !== 'distrokid-bank-usd') {
       throw new Error('Sale-month basis requires verified DistroKid Bank schema');
     }
+    // 'source' groups by the normalized row.date field. For verified Bank rows,
+    // that field is already Sale Month. 'sale-month' adds provenance validation;
+    // neither option groups by reportingDate or dateInserted.
     const parsed = parseRoyaltyPeriod(row.date);
     if ((lower && parsed.key < lower) || (upper && parsed.key > upper)) continue;
     if (currency && currency !== row.currency) throw new Error('Mixed currencies cannot be aggregated');

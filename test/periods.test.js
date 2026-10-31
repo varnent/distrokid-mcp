@@ -52,3 +52,10 @@ test('sale-month basis requires DistroKid Bank provenance and ignores reporting 
   assert.equal(result.dateBasis, 'sale-month');
   assert.throws(() => summarizePeriods([row('2025-01','1')], { dateBasis: 'sale-month' }), /requires verified DistroKid Bank schema/);
 });
+
+
+test('source and sale-month agree on Bank sale month, never reporting date', () => {
+  const rows = [{ ...row('2025-01','1'), schemaProfile: 'distrokid-bank-usd', reportingDate: '2025-04-01' }];
+  assert.deepEqual(summarizePeriods(rows, { dateBasis: 'source' }).groups.map(g => g.period), ['2025-01']);
+  assert.deepEqual(summarizePeriods(rows, { dateBasis: 'sale-month' }).groups.map(g => g.period), ['2025-01']);
+});
